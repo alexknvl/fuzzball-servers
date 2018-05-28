@@ -5,7 +5,7 @@ Compilation servers that can be used for fuzzing dotty or Scala
 the scala fuzzer.
 
 ## Compiling
-You *will* need to modify `build.gradle` and set the right dotty version (i.e. a locally published SNAPSHOT). You may need to compile & install [tracehash](https://github.com/alexknvl/tracehash) and add it to dependencies in `:fuzzball-dotc`.
+You *will* need to modify `build.gradle` and set the right dotty version (i.e. a locally published SNAPSHOT). You may need to compile & install [tracehash](https://github.com/alexknvl/tracehash) and add it to dependencies in `:fuzzball-dotc`. Please ask @alexknvl on [Dotty Gitter](https://gitter.im/lampepfl/dotty) if you need any help running it.
 
 ## Running
 ```
