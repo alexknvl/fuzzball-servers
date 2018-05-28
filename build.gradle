@@ -1,0 +1,159 @@
+buildscript {
+    repositories {
+        jcenter()
+        mavenLocal()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.2'
+    }
+}
+
+//plugins {
+//    id "com.zoltu.application-agent" version "1.0.8"
+//}
+
+group 'fuzzball-servers'
+version '0.1.0'
+
+allprojects {
+    apply plugin: 'java'
+    apply plugin: 'maven'
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+    repositories {
+        mavenCentral()
+    }
+    javadoc {
+        options.links 'https://docs.oracle.com/javase/8/docs/api/'
+        // TODO: change when https://github.com/gradle/gradle/issues/2354 is fixed
+        options.addStringOption 'Xdoclint:all', '-Xdoclint:-missing'
+    }
+    task packageJavadoc(type: Jar, dependsOn: 'javadoc') {
+        from javadoc.destinationDir
+        classifier = 'javadoc'
+    }
+    artifacts {
+        archives packageJavadoc
+    }
+}
+
+subprojects {
+    task packageSources(type: Jar, dependsOn: 'classes') {
+        from sourceSets.main.allSource
+        classifier = 'sources'
+    }
+    artifacts {
+        archives packageSources
+    }
+}
+
+project(':agent') {
+    apply plugin: 'com.github.johnrengelman.shadow'
+    dependencies {
+        compile project(':fuzz')
+
+        testCompile 'junit:junit:4.12'
+    }
+    build.dependsOn 'shadowJar'
+    shadowJar {
+        relocate 'org.objectweb.asm', 'jwp.agent.shade.org.objectweb.asm'
+        baseName = 'jwp'
+        classifier = 'agent'
+        version = null
+        manifest {
+            attributes 'Premain-Class': 'jwp.agent.AgentBootstrap'
+            attributes 'Can-Redefine-Classes': 'true'
+            attributes 'Can-Retransform-Classes': 'true'
+        }
+    }
+    test {
+        dependsOn 'compileJava', 'shadowJar'
+        jvmArgs '-javaagent:build/libs/jwp-agent.jar'
+        outputs.upToDateWhen { false }
+        testLogging.showStandardStreams = true
+    }
+    artifacts {
+        archives shadowJar
+    }
+}
+
+project(':fuzz') {
+    dependencies {
+        compile 'org.ow2.asm:asm:6.0'
+        compile 'org.ow2.asm:asm-commons:6.0'
+        compile 'org.ow2.asm:asm-util:6.0'
+
+        // Optional
+        compileOnly 'com.squareup:javapoet:1.9.0'
+
+        testCompile 'junit:junit:4.12'
+    }
+    test {
+        outputs.upToDateWhen { false }
+        testLogging.showStandardStreams = true
+    }
+}
+
+project(':fuzzball-dotc') {
+    apply plugin: 'application'
+
+    run.dependsOn ':agent:shadowJar'
+
+    mainClassName = 'com.alexknvl.fuzzball.dotc.Server'
+
+    repositories {
+        mavenLocal()
+    }
+
+    project.configurations {
+        agent
+        runtime.extendsFrom(agent)
+    }
+
+    project.startScripts {
+        doLast {
+            project.configurations.agent.each { agent ->
+                String agentFileName = agent.name
+
+                String forwardSlash = "/"
+                String unixRegex = $/exec "$$JAVACMD" /$
+                String unixReplacement = $/exec "$$JAVACMD" -javaagent:"$$APP_HOME/lib${forwardSlash}${agentFileName}" /$
+                unixScript.text = unixScript.text.replace(unixRegex, unixReplacement)
+                String windowsRegex = $/"%JAVA_EXE%" %DEFAULT_JVM_OPTS%/$
+                String windowsReplacement = $/"%JAVA_EXE%" %DEFAULT_JVM_OPTS% -javaagent:"%APP_HOME%\lib\$agentFileName"/$
+                windowsScript.text = windowsScript.text.replace(windowsRegex, windowsReplacement)
+            }
+        }
+    }
+
+    dependencies {
+        compileOnly project(':agent')
+        agent files('../agent/build/libs/jwp-agent.jar')
+
+//        compile 'org.scala-lang:scala-library:2.12.6'
+//        compile 'org.scala-lang:scala-compiler:2.13.0-M4-pre-20d3c21'
+//        compile 'org.scala-lang:scala-reflect:2.13.0-M4-pre-20d3c21'
+//        compile 'org.scala-lang.modules:scala-partest_2.13.0-M4-pre-20d3c21:1.2.0'
+//        compile 'ch.epfl.lamp:dotty-interfaces:0.9.0-bin-SNAPSHOT'
+        compile 'ch.epfl.lamp:dotty-compiler-optimised_0.9:0.9.0-bin-SNAPSHOT'
+        compile 'ch.epfl.lamp:dotty-library-optimised_0.9:0.9.0-bin-SNAPSHOT'
+        compile 'ch.epfl.lamp:dotty-optimised_0.9:0.9.0-bin-SNAPSHOT'
+        compile 'ch.epfl.lamp:dotty-interfaces:0.9.0-bin-SNAPSHOT'
+    }
+    run.standardInput = System.in
+}
+
+//project(':examples:simple') {
+//    mainClassName = 'jwp.examples.simple.Main'
+//    run.jvmArgs '-javaagent:../../agent/build/libs/jwp-agent.jar'
+//}
+
+
+javadoc {
+    def javadocProjects = [':fuzz']
+    source javadocProjects.collect { project(it).sourceSets.main.allJava }
+    classpath = files(javadocProjects.collect { project(it).sourceSets.main.compileClasspath })
+    destinationDir = file("${buildDir}/docs/javadoc")
+}
+
+configurations.archives.artifacts.removeAll { it.archiveTask.is jar }
