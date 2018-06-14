@@ -93,6 +93,7 @@ collecting coverage and error statistics:
 
  * Fuzzing (e.g. using [fuzzball](https://github.com/alexknvl/fuzzball)).
  * [Compiler Validation via Equivalence Modulo Inputs](https://mehrdad.afshari.me/publications/compiler-validation-via-equivalence-modulo-inputs.pdf).
+ * Automatic test case minimization.
    
 ## Credits
 Code is largely derived from [Javan Warty Pig](https://github.com/cretz/javan-warty-pig).
