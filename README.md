@@ -2,12 +2,14 @@
 
 Compilation servers that can be used for testing Dotty or Scala. Part of the larger vision for [fuzzball](https://github.com/alexknvl/fuzzball), the scala fuzzer.
 
+Little work has been done to make it fast. Right now the entire compiler is recreated for each input snippet.
+
 ## Compiling
 You *will* need to modify `build.gradle` and set the right dotty version (i.e. a locally published SNAPSHOT). You may need to compile & install [tracehash](https://github.com/alexknvl/tracehash) and add it to dependencies in `:fuzzball-dotc`. Please ask @alexknvl on [Dotty Gitter](https://gitter.im/lampepfl/dotty) if you need any help running it.
 
 ## Running
 ```
-./fuzzball-dotc/build/install/fuzzball-dotc/bin/fuzzball-dotc
+./fuzzball-dotc/build/install/fuzzball-dotc/bin/fuzzball-dotc --args "-usejavacp -Ycheck:all" --timeout 60
 ```
 
 Reads `\1` separated source files from the standard output and runs them through the dotty compiler,
