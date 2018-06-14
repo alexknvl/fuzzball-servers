@@ -16,18 +16,78 @@ Reads `\1` separated source files from the standard output and runs them through
 collecting coverage and error statistics:
 
 ```
-{"hits":3436,"errors":21,"warnings":0,"bug":"SOE-e4f10db9ea4f061b151be30b8b50780c2b4642f4"}
-{"hits":3039,"errors":12,"warnings":0,"bug":"AE-c1180b713646bf84b82e5ae3df2d3252366db23c"}
-{"hits":2032,"errors":5,"warnings":0,"bug":null}
-{"hits":2288,"errors":11,"warnings":0,"bug":null}
+{
+    "exception": {
+        "className": "java.lang.AssertionError",
+        "hash": "AE-88e48d4972cb198bb4390f4c028ba1065e365aa3",
+        "message": "assertion failed",
+        "principal": [
+            {
+                "declaringClass": "dotty.DottyPredef$",
+                "fileName": "DottyPredef.scala",
+                "lineNumber": 35,
+                "methodName": "assertFail"
+            },
+            {
+                "declaringClass": "dotty.tools.dotc.util.Positions$Position$",
+                "fileName": "Positions.scala",
+                "lineNumber": 40,
+                "methodName": "start$extension"
+            },
+            {
+                "declaringClass": "dotty.tools.dotc.util.SourcePosition",
+                "fileName": "SourcePosition.scala",
+                "lineNumber": 45,
+                "methodName": "start"
+            },
+            {
+                "declaringClass": "dotty.tools.dotc.util.SourcePosition",
+                "fileName": "SourcePosition.scala",
+                "lineNumber": 46,
+                "methodName": "startLine"
+            },
+            {
+                "declaringClass": "com.alexknvl.fuzzball.dotc.Server$ThisContext$CustomReporter",
+                "fileName": "Server.java",
+                "lineNumber": 41,
+                "methodName": "doReport"
+            }
+        ]
+    },
+    "hits": {
+        "-1007018313": 486,
+        "-1007630627": 2,
+        "-1007630726": 6,
+        ... thousands of entries
+    },
+    "lastPhase": "frontend",
+    "messages": [
+        {
+            "level": "error",
+            "message": "']' expected, but '<:' found",
+            "phase": "frontend",
+            "position": "4:26-4:28"
+        },
+        {
+            "level": "error",
+            "message": "i1 is already defined as type i1",
+            "phase": "frontend",
+            "position": "2:13-2:26"
+        }
+    ],
+    "stdErr": "",
+    "stdOut": "",
+    "time": 1274
+}
 ```
 
- * `hits` is the number of branches covered.
- * `errors` is the number of errors.
- * `warnings` is the number of warnings.
- * `bug` is `null` if there were no exceptions during compilation and
-   [tracehash](https://github.com/alexknvl/tracehash)-style signature
-   otherwise.
+ * `exception` contains [tracehash](https://github.com/alexknvl/tracehash)-style signature,
+   the most important part of the stack trace (`principal`; see [tracehash's README](https://github.com/alexknvl/tracehash) for an explanation of how it works), and other information about exception that was caught. If `exception` is present in the output, `lastPhase` is populated with the phase the compiler was in when it happened. 
+ * `hits` are covered branches with hit counts.
+ * `messages` are collected warnings and errors.
+ * `stdErr` is standard error output.
+ * `stdOut` is standard output.
+ * `time` is the time it took to run the compiler (not very accurate).
    
 ## Credits
 Code is largely derived from [Javan Warty Pig](https://github.com/cretz/javan-warty-pig).
