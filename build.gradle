@@ -22,6 +22,7 @@ allprojects {
     targetCompatibility = 1.8
     repositories {
         mavenCentral()
+        mavenLocal()
     }
     javadoc {
         options.links 'https://docs.oracle.com/javase/8/docs/api/'
@@ -94,16 +95,21 @@ project(':fuzz') {
     }
 }
 
+project(':fuzzball-common') {
+    dependencies {
+        compileOnly project(':fuzz')
+        compile 'com.alexknvl:tracehash:0.0.3-SNAPSHOT'
+        compile 'com.google.code.gson:gson:2.8.4'
+        compile 'net.sf.jopt-simple:jopt-simple:6.0-alpha-2'
+    }
+}
+
 project(':fuzzball-dotc') {
     apply plugin: 'application'
 
     run.dependsOn ':agent:shadowJar'
 
     mainClassName = 'com.alexknvl.fuzzball.dotc.Server'
-
-    repositories {
-        mavenLocal()
-    }
 
     project.configurations {
         agent
@@ -127,14 +133,11 @@ project(':fuzzball-dotc') {
     }
 
     dependencies {
+        compile project(':fuzzball-common')
         compileOnly project(':agent')
         agent files('../agent/build/libs/jwp-agent.jar')
 
-//        compile 'org.scala-lang:scala-library:2.12.6'
-//        compile 'org.scala-lang:scala-compiler:2.13.0-M4-pre-20d3c21'
-//        compile 'org.scala-lang:scala-reflect:2.13.0-M4-pre-20d3c21'
-//        compile 'org.scala-lang.modules:scala-partest_2.13.0-M4-pre-20d3c21:1.2.0'
-//        compile 'ch.epfl.lamp:dotty-interfaces:0.9.0-bin-SNAPSHOT'
+        compile 'com.alexknvl:tracehash:0.0.2-SNAPSHOT'
         compile 'ch.epfl.lamp:dotty-compiler-optimised_0.9:0.9.0-bin-SNAPSHOT'
         compile 'ch.epfl.lamp:dotty-library-optimised_0.9:0.9.0-bin-SNAPSHOT'
         compile 'ch.epfl.lamp:dotty-optimised_0.9:0.9.0-bin-SNAPSHOT'
@@ -143,11 +146,48 @@ project(':fuzzball-dotc') {
     run.standardInput = System.in
 }
 
-//project(':examples:simple') {
-//    mainClassName = 'jwp.examples.simple.Main'
-//    run.jvmArgs '-javaagent:../../agent/build/libs/jwp-agent.jar'
-//}
+project(':fuzzball-scalac') {
+    apply plugin: 'application'
 
+    run.dependsOn ':agent:shadowJar'
+
+    mainClassName = 'com.alexknvl.fuzzball.scalac.Server'
+
+    project.configurations {
+        agent
+        runtime.extendsFrom(agent)
+    }
+
+    project.startScripts {
+        doLast {
+            project.configurations.agent.each { agent ->
+                String agentFileName = agent.name
+
+                String forwardSlash = "/"
+                String unixRegex = $/exec "$$JAVACMD" /$
+                String unixReplacement = $/exec "$$JAVACMD" -javaagent:"$$APP_HOME/lib${forwardSlash}${agentFileName}" /$
+                unixScript.text = unixScript.text.replace(unixRegex, unixReplacement)
+                String windowsRegex = $/"%JAVA_EXE%" %DEFAULT_JVM_OPTS%/$
+                String windowsReplacement = $/"%JAVA_EXE%" %DEFAULT_JVM_OPTS% -javaagent:"%APP_HOME%\lib\$agentFileName"/$
+                windowsScript.text = windowsScript.text.replace(windowsRegex, windowsReplacement)
+            }
+        }
+    }
+
+    dependencies {
+        compile project(':fuzzball-common')
+        compileOnly project(':agent')
+        agent files('../agent/build/libs/jwp-agent.jar')
+
+        compile 'org.scala-lang:scala-library:2.12.6'
+        compile 'org.scala-lang:scala-compiler:2.13.0-M4-pre-20d3c21'
+        compile 'org.scala-lang:scala-reflect:2.13.0-M4-pre-20d3c21'
+        compile 'org.scala-lang.modules:scala-partest_2.13.0-M4-pre-20d3c21:1.2.0'
+        compile 'ch.epfl.lamp:dotty-interfaces:0.9.0-bin-SNAPSHOT'
+        compile 'com.alexknvl:tracehash:0.0.2-SNAPSHOT'
+    }
+    run.standardInput = System.in
+}
 
 javadoc {
     def javadocProjects = [':fuzz']

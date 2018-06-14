@@ -14,9 +14,7 @@ public class Agent implements ClassFileTransformer, jwp.fuzz.Agent {
 
   protected static final String[] CLASS_PREFIXES_TO_EXCLUDE_DEFAULT =
       { "com.sun.", "java.", "jdk.", "jwp.agent.", "jwp.fuzz.", "kotlin.",
-          "org.netbeans.lib.profiler.", "sun.", "scala.",
-          "dotty.tools.dotc.util.", "dotty.tools.io.", "dotty.runtime.",
-          "com.alexknvl.fuzzball.", "tracehash." };
+          "org.netbeans.lib.profiler.", "sun." };
 
   protected static final boolean RETRANSFORM_BOOTSTRAPPED_DEFAULT = true;
 
@@ -61,7 +59,17 @@ public class Agent implements ClassFileTransformer, jwp.fuzz.Agent {
 
   protected boolean isClassIgnored(Class<?> cls) { return isClassIgnored(cls.getName()); }
   protected boolean isClassIgnored(String className) {
-    if (!className.startsWith("dotty.tools.dotc.")) return true;
+    if (!className.startsWith("dotty.tools.dotc.")
+        && !className.startsWith("scala.tools.")
+        && !className.startsWith("scala.reflect.")) return true;
+
+    if (className.startsWith("dotty.tools.dotc.util.")) return true;
+    if (className.startsWith("dotty.tools.io.")) return true;
+    if (className.startsWith("dotty.runtime.")) return true;
+
+    if (className.startsWith("scala.tools.util.")) return true;
+    if (className.startsWith("scala.tools.nsc.util.")) return true;
+    if (className.startsWith("scala.tools.nsc.io.")) return true;
 
     if (classPrefixesToInclude != null) {
       for (String classPrefixToInclude : classPrefixesToInclude) {

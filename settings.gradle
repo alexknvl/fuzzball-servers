@@ -1,2 +1,2 @@
 rootProject.name = 'fuzzball-servers'
-include 'agent', 'fuzz', 'fuzzball-dotc'
+include 'agent', 'fuzz', 'fuzzball-common', 'fuzzball-dotc', 'fuzzball-scalac'
