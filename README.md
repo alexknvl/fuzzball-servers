@@ -81,8 +81,10 @@ collecting coverage and error statistics:
 }
 ```
 
- * `exception` contains [tracehash](https://github.com/alexknvl/tracehash)-style signature,
-   the most important part of the stack trace (`principal`; see [tracehash's README](https://github.com/alexknvl/tracehash) for an explanation of how it works), and other information about exception that was caught. If `exception` is present in the output, `lastPhase` is populated with the phase the compiler was in when it happened. 
+ * If `exception` is present in the output, it contains information about an exception that resulted in compiler's termination. 
+   + `hash` is [tracehash](https://github.com/alexknvl/tracehash)-style signature
+   + `principal` is the most significant part of the stack trace (see [tracehash's README](https://github.com/alexknvl/tracehash) for an explanation).
+   + `lastPhase` is the phase when the exception happened.
  * `hits` are covered branches with hit counts.
  * `messages` are collected warnings and errors.
  * `stdErr` is standard error output.
