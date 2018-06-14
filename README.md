@@ -1,8 +1,6 @@
 # Fuzzball Servers
 
-Compilation servers that can be used for fuzzing dotty or Scala
-(not yet). Part of the larger vision for [fuzzball](https://github.com/alexknvl/fuzzball),
-the scala fuzzer.
+Compilation servers that can be used for testing Dotty or Scala. Part of the larger vision for [fuzzball](https://github.com/alexknvl/fuzzball), the scala fuzzer.
 
 ## Compiling
 You *will* need to modify `build.gradle` and set the right dotty version (i.e. a locally published SNAPSHOT). You may need to compile & install [tracehash](https://github.com/alexknvl/tracehash) and add it to dependencies in `:fuzzball-dotc`. Please ask @alexknvl on [Dotty Gitter](https://gitter.im/lampepfl/dotty) if you need any help running it.
@@ -90,6 +88,11 @@ collecting coverage and error statistics:
  * `stdErr` is standard error output.
  * `stdOut` is standard output.
  * `time` is the time it took to run the compiler (not very accurate).
+ 
+## Potential Applications
+
+ * Fuzzing (e.g. using [fuzzball](https://github.com/alexknvl/fuzzball)).
+ * [Compiler Validation via Equivalence Modulo Inputs](https://mehrdad.afshari.me/publications/compiler-validation-via-equivalence-modulo-inputs.pdf).
    
 ## Credits
 Code is largely derived from [Javan Warty Pig](https://github.com/cretz/javan-warty-pig).
