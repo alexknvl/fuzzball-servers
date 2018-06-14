@@ -82,7 +82,7 @@ collecting coverage and error statistics:
 ```
 
  * If `exception` is present in the output, it contains information about an exception that resulted in compiler's termination. 
-   + `hash` is [tracehash](https://github.com/alexknvl/tracehash)-style signature
+   + `hash` is [tracehash](https://github.com/alexknvl/tracehash)-style signature.
    + `principal` is the most significant part of the stack trace (see [tracehash's README](https://github.com/alexknvl/tracehash) for an explanation).
    + `lastPhase` is the phase when the exception happened.
  * `hits` are covered branches with hit counts.
