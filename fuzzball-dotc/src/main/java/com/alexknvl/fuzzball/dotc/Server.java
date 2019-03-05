@@ -6,6 +6,7 @@ import dotty.tools.dotc.Driver;
 import dotty.tools.dotc.Run;
 import dotty.tools.dotc.config.CompilerCommand;
 import dotty.tools.dotc.config.Settings;
+import dotty.tools.dotc.core.Comments;
 import dotty.tools.dotc.core.Contexts;
 import dotty.tools.dotc.core.Phases;
 import dotty.tools.dotc.interfaces.Diagnostic;
@@ -33,17 +34,26 @@ public class Server extends Runner {
 
         final class CustomReporter extends Reporter {
             @Override public void doReport(MessageContainer m, Contexts.Context ctx) {
-                String level = "unknown";
-                if (m.level() == Diagnostic.INFO) level = "info";
-                if (m.level() == Diagnostic.WARNING) level = "warn";
-                if (m.level() == Diagnostic.ERROR) level = "error";
+                try {
+                    String level = "unknown";
+                    if (m.level() == Diagnostic.INFO) level = "info";
+                    if (m.level() == Diagnostic.WARNING) level = "warn";
+                    if (m.level() == Diagnostic.ERROR) level = "error";
 
-                String position = m.pos().startLine() + ":" + m.pos().startColumn() + "-" + m.pos().endLine() + ":" + m.pos().endColumn();
-                String message = m.getMessage();
-                String phase = ctx.phase().phaseName();
+                    String position;
+                    if (m.pos().exists()) position =
+                            m.pos().startLine() + ":" + m.pos().startColumn() + "-" + m.pos().endLine() + ":" + m.pos
+                                    ().endColumn();
+                    else position = "<unk>";
 
-                if (!level.equals("info"))
-                    messages.add(new Message(level, message, position, phase));
+                    String message = m.getMessage();
+                    String phase = ctx.phase().phaseName();
+
+                    if (!level.equals("info")) messages.add(new Message(level, message, position, phase));
+                } catch (Throwable e) {
+                    System.err.println("Caught an exception while saving a message.");
+                    e.printStackTrace(System.err);
+                }
             }
         }
 
@@ -53,6 +63,7 @@ public class Server extends Runner {
 
             Settings.ArgsSummary summary = CompilerCommand.distill(compilerArgs.split("\\s+"), ctx);
             ctx.setSettings(summary.sstate());
+            ctx.setProperty(Comments.ContextDoc(), new Comments.ContextDocstrings());
 
             reporter = new CustomReporter();
             ctx.setReporter(reporter);

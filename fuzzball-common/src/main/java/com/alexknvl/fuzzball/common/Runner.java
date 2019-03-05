@@ -64,6 +64,7 @@ public abstract class Runner {
         public ExcSignature(Throwable e) {
             hash = TraceHash.hash(TraceHash.DEFAULT_PARAMETERS, e);
             principal = TraceHash.principal(TraceHash.DEFAULT_PARAMETERS, e);
+
             message = e.getMessage();
             className = e.getClass().getName();
 
@@ -143,7 +144,11 @@ public abstract class Runner {
     public void run(String[] args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<Double> timeoutOpt = parser.accepts("timeout").withRequiredArg().ofType(Double.class).defaultsTo(30.0);
-        OptionSpec<String> argsOpt = parser.accepts("args").withRequiredArg().defaultsTo("-usejavacp");
+        OptionSpec<String> argsOpt = parser.accepts("args").withRequiredArg().defaultsTo(
+                "-usejavacp -Ycheck:all -Ycheck-mods " +
+                "-Ydebug -Ydebug-missing-refs " +
+                "-Ydump-sbt-inc -Yforce-sbt-phases " +
+                "-Xverify-signatures");
         OptionSet optionSet = parser.parse(args);
 
         long timeout = (long) (optionSet.valueOf(timeoutOpt) * 1000);

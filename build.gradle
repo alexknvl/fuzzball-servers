@@ -137,11 +137,11 @@ project(':fuzzball-dotc') {
         compileOnly project(':agent')
         agent files('../agent/build/libs/jwp-agent.jar')
 
-        compile 'com.alexknvl:tracehash:0.0.2-SNAPSHOT'
-        compile 'ch.epfl.lamp:dotty-compiler-optimised_0.9:0.9.0-bin-SNAPSHOT'
-        compile 'ch.epfl.lamp:dotty-library-optimised_0.9:0.9.0-bin-SNAPSHOT'
-        compile 'ch.epfl.lamp:dotty-optimised_0.9:0.9.0-bin-SNAPSHOT'
-        compile 'ch.epfl.lamp:dotty-interfaces:0.9.0-bin-SNAPSHOT'
+        compile 'com.alexknvl:tracehash:0.0.3-SNAPSHOT'
+        compile 'ch.epfl.lamp:dotty-compiler_2.12:0.10.0-bin-SNAPSHOT-nonbootstrapped'
+        compile 'ch.epfl.lamp:dotty-library_2.12:0.10.0-bin-SNAPSHOT-nonbootstrapped'
+        compile 'ch.epfl.lamp:dotty_2.12:0.10.0-bin-SNAPSHOT-nonbootstrapped'
+        compile 'ch.epfl.lamp:dotty-interfaces:0.10.0-bin-SNAPSHOT'
     }
     run.standardInput = System.in
 }
@@ -180,11 +180,14 @@ project(':fuzzball-scalac') {
         agent files('../agent/build/libs/jwp-agent.jar')
 
         compile 'org.scala-lang:scala-library:2.12.6'
-        compile 'org.scala-lang:scala-compiler:2.13.0-M4-pre-20d3c21'
-        compile 'org.scala-lang:scala-reflect:2.13.0-M4-pre-20d3c21'
-        compile 'org.scala-lang.modules:scala-partest_2.13.0-M4-pre-20d3c21:1.2.0'
+        // compile 'org.scala-lang:scala-compiler:2.13.0-M4-pre-20d3c21'
+        // compile 'org.scala-lang:scala-reflect:2.13.0-M4-pre-20d3c21'
+        // compile 'org.scala-lang.modules:scala-partest_2.13.0-M4-pre-20d3c21:1.2.0'
+        compile 'org.scala-lang:scala-compiler:2.12.6'
+        compile 'org.scala-lang:scala-reflect:2.12.6'
+        compile 'org.scala-lang.modules:scala-partest_2.12:1.1.8'
         compile 'ch.epfl.lamp:dotty-interfaces:0.9.0-bin-SNAPSHOT'
-        compile 'com.alexknvl:tracehash:0.0.2-SNAPSHOT'
+        compile 'com.alexknvl:tracehash:0.0.3-SNAPSHOT'
     }
     run.standardInput = System.in
 }
@@ -196,4 +199,4 @@ javadoc {
     destinationDir = file("${buildDir}/docs/javadoc")
 }
 
-configurations.archives.artifacts.removeAll { it.archiveTask.is jar }
+// configurations.archives.artifacts.removeAll { it.archiveTask.is jar }

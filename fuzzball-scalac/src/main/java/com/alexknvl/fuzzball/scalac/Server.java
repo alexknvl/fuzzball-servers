@@ -73,7 +73,7 @@ public class Server extends Runner {
     @Override protected void compileSource(CompilerContext context, String source) {
         BatchSourceFile sourceFile = new BatchSourceFile(new VirtualFile("<memory>"), source.toCharArray());
         Builder<SourceFile, ?> builder1 = List$.MODULE$.<SourceFile>newBuilder();
-        builder1.addOne(sourceFile);
+        builder1.$plus$eq(sourceFile);
         @SuppressWarnings("unchecked") List<SourceFile> sources = (List<SourceFile>) builder1.result();
 
         ((ThisContext) context).run.compileSources(sources);
