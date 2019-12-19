@@ -15,6 +15,7 @@ import dotty.tools.dotc.profile.Profiler;
 import dotty.tools.dotc.profile.Profiler$;
 import dotty.tools.dotc.reporting.Reporter;
 import dotty.tools.dotc.reporting.diagnostic.MessageContainer;
+import scala.Function0;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -87,6 +88,11 @@ public class Server extends Runner {
 
     @SuppressWarnings("unchecked") @Override
     public void compileSource(CompilerContext context, String source) {
-        ((ThisContext) context).run.compile(source);
+        ((ThisContext) context).run.compileFromStrings(scala.collection.immutable.List.fill(1, new scala.Function0<String>() {
+			@Override
+			public String apply() {
+				return source;
+			}
+        }).toList());
     }
 }

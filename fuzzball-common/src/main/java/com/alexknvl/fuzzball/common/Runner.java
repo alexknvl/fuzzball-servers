@@ -2,6 +2,9 @@ package com.alexknvl.fuzzball.common;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -9,12 +12,13 @@ import jwp.fuzz.BranchHit;
 import jwp.fuzz.Tracer;
 import tracehash.TraceHash;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
 
 public abstract class Runner {
     protected interface CompilerContext {
@@ -90,7 +94,7 @@ public abstract class Runner {
         String lastPhase;
     }
 
-    private void submitSource(String source, String compilerArgs, long timeout) throws InterruptedException {
+    private String submitSource(String source, String compilerArgs, long timeout) throws InterruptedException {
         // This is not side-effecting.
         Tracer coverageTracer = new Tracer.Instrumenting();
         OutputTracer outputTracer = new OutputTracer();
@@ -138,7 +142,44 @@ public abstract class Runner {
             finalOutput.hits.put(bh.branchHash, bh.hitCount);
         }
 
-        System.out.println(GSON.toJson(finalOutput));
+        return GSON.toJson(finalOutput);
+    }
+
+    static byte[] readBytes(InputStream is) throws IOException {
+        byte[] arr = new byte[8192];
+
+        byte[] result;
+        try {
+            ByteArrayOutputStream buf = new ByteArrayOutputStream();
+            Throwable exc = null;
+
+            try {
+                int numBytes;
+                while((numBytes = is.read(arr, 0, arr.length)) > 0) {
+                    buf.write(arr, 0, numBytes);
+                }
+
+                result = buf.toByteArray();
+            } catch (Throwable var21) {
+                exc = var21;
+                throw var21;
+            } finally {
+                if (exc != null) {
+                    try {
+                        buf.close();
+                    } catch (Throwable e) {
+                        exc.addSuppressed(e);
+                    }
+                } else {
+                    buf.close();
+                }
+
+            }
+        } finally {
+            is.close();
+        }
+
+        return result;
     }
 
     public void run(String[] args) throws Exception {
@@ -149,6 +190,7 @@ public abstract class Runner {
                 "-Ydebug -Ydebug-missing-refs " +
                 "-Ydump-sbt-inc -Yforce-sbt-phases " +
                 "-Xverify-signatures");
+        OptionSpec<Integer> httpOpt = parser.accepts("http").withRequiredArg().ofType(Integer.class).defaultsTo(-1);
         OptionSet optionSet = parser.parse(args);
 
         long timeout = (long) (optionSet.valueOf(timeoutOpt) * 1000);
@@ -159,29 +201,62 @@ public abstract class Runner {
 
         String compilerArgs = optionSet.valueOf(argsOpt);
 
-        StringBuilder builder = new StringBuilder();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, "UTF-8"));
-        String line;
-        while (true) {
-            line = reader.readLine();
-            if (line == null) {
-                submitSource(builder.toString(), compilerArgs, timeout);
-                break;
+        int port = (int) (optionSet.valueOf(httpOpt));
+        if (port > 0) {
+            HttpServer server = HttpServer.create();
+            server.bind(new InetSocketAddress("0.0.0.0", port), 0);
+            server.setExecutor(Executors.newCachedThreadPool());
+
+            server.createContext("/submit", new HttpHandler() {
+                @Override
+                public void handle(HttpExchange httpExchange) throws IOException {
+                    String body = new String(readBytes(httpExchange.getRequestBody()), "UTF-8");
+
+                    String result;
+                    try {
+                        result = submitSource(body, compilerArgs, timeout);
+                    } catch (InterruptedException e) {
+                        result = "Interrupted";
+                    }
+
+                    final byte[] out = result.getBytes("UTF-8");
+
+                    httpExchange.sendResponseHeaders(200, out.length);
+
+                    OutputStream os = httpExchange.getResponseBody();
+                    os.write(out);
+                    os.close();
+                }
+            });
+
+            server.start();
+        } else {
+            StringBuilder builder = new StringBuilder();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, "UTF-8"));
+            String line;
+            while (true) {
+                line = reader.readLine();
+                if (line == null) {
+                    String result = submitSource(builder.toString(), compilerArgs, timeout);
+                    System.out.println(result);
+                    break;
+                }
+
+                while (line.contains("\1")) {
+                    int i = line.indexOf('\1');
+                    builder.append(line, 0, i);
+                    String source = builder.toString();
+
+                    // Submit the source.
+                    String result = submitSource(source, compilerArgs, timeout);
+                    System.out.println(result);
+
+                    // Reset the buffer.
+                    builder.setLength(0);
+                    line = line.substring(i + 1);
+                }
+                builder.append(line).append('\n');
             }
-
-            while (line.contains("\1")) {
-                int i = line.indexOf('\1');
-                builder.append(line, 0, i);
-                String source = builder.toString();
-
-                // Submit the source.
-                submitSource(source, compilerArgs, timeout);
-
-                // Reset the buffer.
-                builder.setLength(0);
-                line = line.substring(i + 1);
-            }
-            builder.append(line).append('\n');
         }
     }
 }
