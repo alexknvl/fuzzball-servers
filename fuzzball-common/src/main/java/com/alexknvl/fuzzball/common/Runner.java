@@ -21,7 +21,14 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 
 public abstract class Runner {
-    protected interface CompilerContext {
+    protected interface GlobalContext {
+        RunContext newRun();
+    }
+
+    protected abstract GlobalContext newContext(String compilerArgs);
+
+    protected interface RunContext {
+        void compileSource(String source);
         List<Message> getMessages();
         String getPhaseName();
     }
@@ -40,20 +47,17 @@ public abstract class Runner {
         }
     }
 
-    protected abstract CompilerContext newContext(String compilerArgs);
-    protected abstract void compileSource(CompilerContext state, String source);
-
     private final class RunnerThread implements Runnable {
         private final String source;
-        public final CompilerContext context;
+        public final RunContext ctx;
 
-        public RunnerThread(String source, String compilerArgs) {
+        public RunnerThread(String source, RunContext ctx) {
             this.source = source;
-            this.context = newContext(compilerArgs);
+            this.ctx = ctx;
         }
 
         @Override public void run() {
-            compileSource(context, source);
+            ctx.compileSource(source);
         }
     }
 
@@ -94,27 +98,29 @@ public abstract class Runner {
         String lastPhase;
     }
 
-    private String submitSource(String source, String compilerArgs, long timeout) throws InterruptedException {
+    private String submitSource(String source, GlobalContext globalContext, long timeout) throws InterruptedException {
         // This is not side-effecting.
         Tracer coverageTracer = new Tracer.Instrumenting();
         OutputTracer outputTracer = new OutputTracer();
         FinalOutput finalOutput = new FinalOutput();
 
+        RunContext runContext = globalContext.newRun();
+
         // Create a new compiler context and a runner.
-        RunnerThread runnerThread = new RunnerThread(source, compilerArgs);
+        RunnerThread runnerThread = new RunnerThread(source, runContext);
         Thread newThread = new Thread(new Runnable() {
             @Override public void run() {
                 try {
                     runnerThread.run();
                 } catch (Throwable e) {
                     finalOutput.exception = new ExcSignature(e);
-                    finalOutput.lastPhase = runnerThread.context.getPhaseName();
+                    finalOutput.lastPhase = runnerThread.ctx.getPhaseName();
                 }
             }
         });
         newThread.setUncaughtExceptionHandler((t, e) -> {
             finalOutput.exception = new ExcSignature(e);
-            finalOutput.lastPhase = runnerThread.context.getPhaseName();
+            finalOutput.lastPhase = runnerThread.ctx.getPhaseName();
         });
 
         outputTracer.startTrace();
@@ -135,7 +141,7 @@ public abstract class Runner {
 
         finalOutput.stdOut = output.outBuf;
         finalOutput.stdErr = output.errBuf;
-        finalOutput.messages = runnerThread.context.getMessages();
+        finalOutput.messages = runnerThread.ctx.getMessages();
         finalOutput.time = endTime - startTime;
 
         for (BranchHit bh : hits) {
@@ -201,6 +207,8 @@ public abstract class Runner {
 
         String compilerArgs = optionSet.valueOf(argsOpt);
 
+        GlobalContext globalContext = newContext(compilerArgs);
+
         int port = (int) (optionSet.valueOf(httpOpt));
         if (port > 0) {
             HttpServer server = HttpServer.create();
@@ -214,7 +222,7 @@ public abstract class Runner {
 
                     String result;
                     try {
-                        result = submitSource(body, compilerArgs, timeout);
+                        result = submitSource(body, globalContext, timeout);
                     } catch (InterruptedException e) {
                         result = "Interrupted";
                     }
@@ -237,7 +245,7 @@ public abstract class Runner {
             while (true) {
                 line = reader.readLine();
                 if (line == null) {
-                    String result = submitSource(builder.toString(), compilerArgs, timeout);
+                    String result = submitSource(builder.toString(), globalContext, timeout);
                     System.out.println(result);
                     break;
                 }
@@ -248,7 +256,7 @@ public abstract class Runner {
                     String source = builder.toString();
 
                     // Submit the source.
-                    String result = submitSource(source, compilerArgs, timeout);
+                    String result = submitSource(source, globalContext, timeout);
                     System.out.println(result);
 
                     // Reset the buffer.
